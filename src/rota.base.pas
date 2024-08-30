@@ -136,7 +136,7 @@ end;
 procedure OnStatus(aReq: THorseRequest; aRes: THorseResponse; aNext: TNextProc);
 begin
   aRes.ContentType('text/html; charset=UTF-8')
-      .Send(Format('<H1>Servidor Controle Contratos (Horse versão %s)<H1>',[THorse.Version]));
+      .Send(Format('<H1>API Controle Contratos (Horse versão %s)<H1>',[THorse.Version]));
 end;
 
 procedure OnPing(aReq: THorseRequest; aRes: THorseResponse; aNext: TNextProc);

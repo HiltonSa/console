@@ -1,4 +1,11 @@
+.gitignore
+*.lps
 *.bak
-.\backup
-.\lib
-.\temp
+*.zip
+*.rar
+*.log
+*.res
+backup\
+lib\
+temp\
+

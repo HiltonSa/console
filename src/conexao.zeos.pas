@@ -238,12 +238,18 @@ begin
 end;
 
 function TDBConexaoZeos.CheckDB: String;
+var
+  vMsg: String;
 begin
+  vMsg := Format('Servidor Database (%s:%d) conectado.',[DB_HOST, DB_PORT]);
   try
     FConexao.Connected := false;
     FConexao.Connected := True;
     FConexao.Connected := false;
-    Result := TRetornoJson.New.Sucesso(True).Mensagem('Conexao com a base de dados OK.').ParaString;
+    Result := TRetornoJson.New
+                          .Sucesso(True)
+                          .Mensagem(vMsg)
+                          .ParaString;
   except
     on E: exception do
 	  Result := TRetornoJson.New.Sucesso(False).Mensagem(E.Message).ParaString;
