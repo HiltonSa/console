@@ -51,6 +51,15 @@ begin
       .Send( TConsultaPagamentoService.New.Associado( vAssociado ) );
 end;
 
+procedure OnDependente(aReq: THorseRequest; aRes: THorseResponse);
+var
+  vAssociado: Integer;
+begin
+  vAssociado := aReq.Params.Required(True).Field('associado').AsInteger;
+  aRes.ContentType('application/json; charset=UTF-8')
+      .Send( TConsultaPagamentoService.New.Dependente( vAssociado ) );
+end;
+
 procedure OnDtRec(aReq: THorseRequest; aRes: THorseResponse);
 var
   vContcon: Integer;
@@ -102,6 +111,7 @@ begin
         .Get('/frmpg', OnFrmpg)
         .Get('/dtrec/:contcon', OnDtRec)
         .Get('/associado/:associado', OnAssociado)
+        .Get('/dependentes/:associado',onDependente)
         .Get('/imagem/:imagem', OnImagem)
         .Get('/acerto/cobrador/:cobrador/dtrec/:dtrec', OnProximoAcerto);
 

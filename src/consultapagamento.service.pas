@@ -19,6 +19,7 @@ type
      function FormasPagamento: String;
      function GetImagem(pCodigo: Integer): TMemoryStream;
      function Associado(pAssociado: Integer): String;
+     function Dependente(pAssociado: Integer): String;
      function ConsultaNome(pCobrador: Integer;pNome: String): TMemoryStream;
      function DataRecebimento(pCobrador: Integer): TMemoryStream;
   end;
@@ -40,6 +41,7 @@ type
       function FormasPagamento: String;
       function GetImagem(pCodigo: Integer): TMemoryStream;
       function Associado(pAssociado: Integer): String;
+      function Dependente(pAssociado: Integer): String;
       function ConsultaNome(pCobrador: Integer;pNome: String): TMemoryStream;
       function DataRecebimento(pCobrador: Integer): TMemoryStream;
 
@@ -53,8 +55,8 @@ const
   SQL_BASE_ASSOCIADO =
     'select * from (select X.*, IIF(X.INIREF<X.RFATUAL,datediff(month from X.ULTREF to X.RFATUAL),1) TXDEV from '+
     ' ( select C.CODIGO, C.CODAREA, A.DESCRICAO DCAREA, A.COBRADOR,                                             '+
-    '         B.NOME NMCOB, C.INIREF, C.DIAVENC, P.MENSALIDADE, C.GRUPO,                                        '+
-    '         G.DESCRICAO DCGRU, C.NOME, E.ENDERECO,                                                            '+
+    '         B.NOME NMCOB, C.INIREF, C.DIAVENC, P.MENSALIDADE, C.GRUPO, C.CARAT DTCAR,                         '+
+    '         G.DESCRICAO DCGRU, C.NOME, E.ENDERECO, P.DESCRICAO DCPLANO,                                       '+
     '         E.BAIRRO, E.REFERENCIA, CI.NOME NMCID, CI.UF,                                                     '+
     '         E.CEP, C.TELEFONE, C.CELULAR,                                                                     '+
     '         coalesce(E.LATITUDE,0.0) LATITUDE, coalesce(E.LONGITUDE, 0.0) LONGITUDE, EMP.ULTREF RFATUAL,      '+
@@ -155,7 +157,7 @@ const
     '       TRANSLATOR(C.REFERENCIA) REFERENCIA, C.NMCID, C.UF, '+
     '       trim(replace(C.CEP, ascii_char(44), ascii_char(32))) CEP, '+
     '       C.TELEFONE, C.CELULAR, C.LATITUDE, C.LONGITUDE, C.RFATUAL, '+
-    '       C.PAGAMENTOS, C.ULTREF, C.TXDEV, C.DTREC '+
+    '       C.PAGAMENTOS, C.ULTREF, C.TXDEV, C.DTREC, C.DTCAR, C.DCPLANO '+
     'FROM CARTEIRA c  '+
     'WHERE (C.COBRADOR = :COBRADOR OR C.COBSUB = :COBRADOR) AND C.DIAVENC =:DIA '+
     'ORDER BY C.GRUPO, C.CODAREA';
@@ -487,6 +489,48 @@ begin
       end
       else Raise Exception.Create(
                  Format('Associado %d não encontrado!', [pAssociado]));
+    finally
+      vQry.Close;
+      FreeAndNil(vQry);
+      //vResultado.Free;
+    end;
+  except
+    on E: exception do
+       Result := TRetornoJson.New.Sucesso(False).Mensagem(E.Message).ParaString;
+  end;
+end;
+
+function TConsultaPagamentoService.Dependente(pAssociado: Integer): String;
+const
+  SQL_BENEFICIARIOS =
+  ' SELECT B.NOME, COALESCE(P.DESCRICAO,'' '') PARENTESCO,  '+
+  '        B.DTOBITO OBITO, B.CARENCIA                      '+
+  ' FROM BENEFICIARIOS b                                   '+
+  ' LEFT JOIN PARENTESCO p ON P.CODIGO = B.GRAU           '+
+  ' WHERE B.CONTRATO = :CODIGO                             '+
+  ' ORDER BY B.CODIGO';
+var
+  vQry: TZQuery;
+  vResultado: TJsonArray;
+begin
+  TDataSetSerializeConfig.GetInstance.DateTimeIsISO8601 := True;
+
+  try
+    vResultado := TJsonArray.Create();
+    vQry := FConexao.GetQuery;
+    try
+      vQry.Close;
+      vQry.SQL.Clear;
+      vQry.SQL.Add(SQL_BENEFICIARIOS);
+      vQry.ParamByName('CODIGO').AsInteger := pAssociado;
+
+      vQry.Open;
+
+      vResultado := vQry.ToJSONArray();
+      Result := TRetornoJson.New.Sucesso(True)
+                              .Mensagem('Dados Encontrados!')
+                              .Data(vResultado)
+                              .ParaString;
     finally
       vQry.Close;
       FreeAndNil(vQry);
